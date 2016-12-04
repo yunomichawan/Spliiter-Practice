@@ -1,0 +1,9 @@
+
+.splitter-parent {
+	width : 100%;
+	border : 1px solid gray;
+}
+
+.splitter-parent .splitter-child {
+	float : left;
+}
