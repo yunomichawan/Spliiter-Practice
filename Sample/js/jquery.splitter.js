@@ -6,6 +6,7 @@
             distanceObject: null,// input type hidden #id selector
             minDistance: 0,
             firstDistance: 0, // first panel size
+            padding: 30,
         }
     }
 
@@ -36,7 +37,7 @@
             var h = splitterParent.height();
             iconElement.css({
                 'width': '5px',
-                'height': h + 'px',
+                'height': '100%',
                 'float': 'left',
                 'background-color': 'lightgray',
                 'cursor': 'w-resize',
@@ -53,10 +54,9 @@
         }
 
         // パネル要素のスタイルを設定
-        var setPanelElement = function (element, width, height, isFirst) {
+        var setPanelElement = function (element, width, isFirst) {
             var cssOptions = {
                 'width': width + 'px',
-                'height': height + 'px',
                 'float': 'left',
             };
             element.css(cssOptions);
@@ -70,14 +70,31 @@
             }
         }
 
+        // setPanelElementを同時に設定
+        var setDualPanel = function (firstWidth) {
+            var parentWidth = splitterParent.width();
+            var w1 = firstWidth;
+            var w2 = parentWidth - firstWidth - 5;
+            // 最低横幅を確保
+            if (w1 < splitterParent.options.padding) {
+                w2 -= (splitterParent.options.padding - w1);
+                w1 = splitterParent.options.padding;
+            } else if (w2 < splitterParent.options.padding) {
+                w1 -= (splitterParent.options.padding - w2);
+                w2 = splitterParent.options.padding;
+            }
+            setPanelElement(firstChild, w1, true);
+            setPanelElement(secondChild, w2, false);
+        }
+
         // エリアの表示/非表示
         var areaToggle = function (obj) {
             if (splitterParent.options.minDistance == 0) {
                 var parWidth = splitterParent.width();
                 if (firstChild.css('display') == 'none') {
-                    setPanelElement(secondChild, parWidth - 5 - firstChild.innerWidth(), secondChild.height(), false);
+                    setPanelElement(secondChild, parWidth - 5 - firstChild.innerWidth(), false);
                 } else {
-                    setPanelElement(secondChild, parWidth - 5, secondChild.height(), false);
+                    setPanelElement(secondChild, parWidth - 5, false);
                 }
                 firstChild.toggle();
             }
@@ -91,13 +108,13 @@
                     splitterParent.options.firstDistance = firstChild.width();
                 }
 
-                setPanelElement(firstChild, w, firstChild.height(), true);
-                setPanelElement(secondChild, splitterParent.innerWidth() - 5 - w, firstChild.height(), false);
+                setPanelElement(firstChild, w, true);
+                setPanelElement(secondChild, splitterParent.innerWidth() - 5 - w, false);
             }
         }
 
-        setPanelElement(firstChild, splitterParent.options.distance, splitterParent.innerHeight(), true);
-        setPanelElement(secondChild, splitterParent.width() - splitterParent.options.distance - 5, splitterParent.innerHeight(), false);
+        splitterParent.width(splitterParent.parent().width());
+        setDualPanel(splitterParent.options.distance);
 
         splitterParent.$icon = iconElement;
         // スプリッタ生成
@@ -118,29 +135,31 @@
                 // 非表示だった場合
                 if (firstChild.css('display') == 'none') {
                     // 最大値は-30
-                    difLeft = difLeft > -30 ? -30 : difLeft;
-                    setPanelElement(firstChild, difLeft * -1, secondChild.height(), true);
-                    setPanelElement(secondChild, secondChild.innerWidth() + difLeft, secondChild.height(), false);
+                    difLeft = difLeft > splitterParent.options.padding * -1 ? splitterParent.options.padding * -1 : difLeft;
+                    setDualPanel(difLeft * -1);
                     firstChild.show();
                 }
                 else {
-                    setPanelElement(firstChild, firstChild.innerWidth() - difLeft, firstChild.height(), true);
-                    setPanelElement(secondChild, firstChild.parent().width() - firstChild.innerWidth() - 5, firstChild.height(), false);
+                    setDualPanel(firstChild.innerWidth() - difLeft);
                 }
             }
             // クリックイベント設定
         }).find('div').on('click', function () {
             areaToggle(this);
         });
+        var timer = false;
         // ウィンドウリサイズイベントの定義
         var resizeSplitter = function () {
-            splitterParent.width(splitterParent.parent().width());
-            var parentWidth = splitterParent.width();
-            var firstOuterWidth = firstChild.outerWidth();
-            var sumWidth = firstOuterWidth + secondChild.outerWidth() + 5;
-            var firstWidth = Math.floor(firstOuterWidth / sumWidth * parentWidth);
-            setPanelElement(firstChild, Math.floor(firstOuterWidth / sumWidth * parentWidth), firstChild.height(), true);
-            setPanelElement(secondChild, parentWidth - firstChild.innerWidth() - 5, secondChild.height(), false);
+            if (timer !== false) {
+                clearTimeout(timer);
+            }
+            timer = setTimeout(function () {
+                splitterParent.width(splitterParent.parent().width());
+                var parentWidth = splitterParent.width();
+                var firstOuterWidth = firstChild.outerWidth();
+                var sumWidth = firstOuterWidth + secondChild.outerWidth() + 5;
+                setDualPanel(Math.floor(firstOuterWidth / sumWidth * parentWidth));
+            }, 200);
         };
         // ウィンドウの幅変更時イベント
         $(window).resize(resizeSplitter);
